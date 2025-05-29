@@ -1,0 +1,1 @@
+# MufredatKonulari_nesne_tabanli
