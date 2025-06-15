@@ -75,7 +75,7 @@
 # Karmaşık sistemleri, küçük ve anlamlı yapılarla yönetilebilir hale getirir.
 
 # ✅ DAVRANIŞI GENİŞLETEBİLİRİZ:
-# Alt sınıf, üst sınıftan gelen metodları geçersiz kılarak (`override`) yeni davranışlar ekleyebilir.
+# Alt sınıf, üst sınıftan gelen metodları geçersiz kılarak (`override`) veya genişleterek yeni davranışlar ekleyebilir.
 
 # ===============================================
 # 🎓 ÖNEMLİ TERİMLER

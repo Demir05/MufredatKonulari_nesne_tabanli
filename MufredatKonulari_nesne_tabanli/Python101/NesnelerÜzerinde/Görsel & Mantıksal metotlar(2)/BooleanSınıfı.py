@@ -15,7 +15,7 @@
 
 # Falsy ve Truthy:
 
-# Python'da bazı nesneler doğrudan "False" gibi davranır → Bunlara falsy denir:
+# Python'da bazı nesneler doğrudan "False" gibi davranır → Bunlara falsy denir:     
 # Falsy örnekleri: None, False, 0, 0.0, "", [], {}, set(), range(0)
 
 # Diğer tüm nesneler → truthy kabul edilir yani mantıksal bağlamda True sayılırlar

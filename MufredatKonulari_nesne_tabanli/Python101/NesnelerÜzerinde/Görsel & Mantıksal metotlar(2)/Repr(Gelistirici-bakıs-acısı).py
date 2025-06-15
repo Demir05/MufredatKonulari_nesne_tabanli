@@ -24,7 +24,12 @@
 # 🧠 NOT:
 # - Eğer __repr__() yoksa, varsayılan olarak object veya type sınıfından gelen:
 #   → <__main__.SınıfAdı object at 0x...> gibi bir çıktı alınır.
-# - Bu pek bilgilendirici değildir, override ederek özelleştirmek yaygın bir uygulamadır.
+# - Bu pek bilgilendirici değildir, override ederek özelleştirmek yaygın bir uygulamadır
+
+# yalnız __repr__() metodu, herangi bir parametre almaz (self dışında) 
+#   python, bu metodu otomatik olarak çağırır böyle bir durumda argüman vermen mümkün olmaz aynı zamanda __repr__() metodunun argüman almaması felsefi olarak da mantıklıdır çünkü:
+#       amaç zaten nesneyi her koşulda string formatında temsil edebilmektir 
+#       bu temsil,nesnenin kendi iç durumuna göre belirlenir,dışardan gelen bir veriye göre değil bu nedenle bu metodun imzası sabit olmalıdır 
 
 # 🧪 Sözdizimi:
 # def __repr__(self) -> str:

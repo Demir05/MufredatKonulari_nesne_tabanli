@@ -60,16 +60,13 @@ print(B.__base__)   # <class '__main__.A'>    → sadece ilk üst sınıf
 # 1. Python, bunun attribute olduğunu anlar:
 #    → type(B).__getattribute__(B, '__base__')
 
-# 2. Ardından __getattribute__ metodu çalışır ve sınıfın __dict__’inde '__base__' aranır
-#    → B.__class__.__dict__['__base__'] → bulunamaz
-
-# 3. Sıra MRO zincirine göre type sınıfının __dict__’inde aranır:
+# 2. Sıra MRO zincirine göre type sınıfının __dict__’inde aranır sınıfın kendisine bakılmaz çünkü __base__,special method'dur doğrudan ait olduğu sınıftan arama başlanır:
 #    → type.__dict__['__base__'] → bu bir descriptor’dur
 
-# 4. Eğer bu nesne descriptor ise:
+# 3. Eğer bu nesne descriptor ise:
 #    → descriptor.__get__(B, type(B)) çağrılır
 
-# 5. Sonuçta B.__base__ → <class '__main__.A'> döner
+# 4. Sonuçta B.__base__ → <class '__main__.A'> döner
 
 # ---------------------------------------------
 # NOT:
