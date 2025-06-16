@@ -73,8 +73,9 @@ class B:
 # Alt sınıf C, hem A hem B'den miras alıyor
 # Her ikisi de __slots__ tanımladığı için bu çoklu miras ÇATIŞMA yaratıyor
 # Çünkü Python her sınıfın nesne hafızasını farklı şekilde düzenliyor
+"""
 class C(A, B):
-    __slots__ = ("c",)  # C'ye "c" eklemek istiyoruz ama...
+    __slots__ = ("c",)  # C'ye "c" eklemek istiyoruz ama..."""
 
 # ❌ Bu yapı TypeError ile sonuçlanır:
 # TypeError: multiple bases have instance lay-out conflict
@@ -93,7 +94,105 @@ class C_fixed(A, B_no_slot):
     __slots__ = ("c",)  # Artık sorunsuz çalışır
 
 
-# __slots__ → sınıfın bellekte nasıl yerleşeceğini tanımlar
-# Zincirleme miras (tek hat): slots düzgün şekilde miras alınır
-# Çoklu miras: birden fazla farklı layout çakışır → TypeError oluşur
-# Python "hangi yapıyı kullanayım?" sorusunu çözemediği için layout conflict hatası verir
+
+
+
+# ❗ Python'da __slots__ bellekte fiziksel alan ayırır.
+# Bu yapıya "layout" (yerleşim düzeni) denir.
+# Amaç: __dict__ kullanılmadan sabit hafıza düzeniyle alan kazanmaktır.
+
+# ✔ Zincirleme mirasta (tek yol): Python layout'u yukarıdan aşağıya birleştirebilir.
+# ❌ Çoklu mirasta (birden fazla taban sınıf): Layout'lar çakışır, Python birleştiremez ve TypeError verir.
+
+# ------------------- ZİNCİRLEME MİRAS (GEÇERLİ) -------------------
+
+class A:
+    __slots__ = ('a',)  # üst sınıf
+
+class B(A):
+    __slots__ = ('b',)  # orta sınıf
+
+class C(B):
+    __slots__ = ('c',)  # alt sınıf
+
+# Bu durumda Python bellekte tek bir layout oluşturabilir:
+# [a][b][c] → Çünkü sınıflar zincir halinde bağlanmıştır.
+obj = C()
+obj.a = 1
+obj.b = 2
+obj.c = 3
+# Her şey yolunda ✅
+
+# ------------------- ÇOKLU MİRAS (GEÇERSİZ) -------------------
+
+class X:
+    __slots__ = ('x',)
+
+class Y:
+    __slots__ = ('y',)
+
+# class Z(X, Y):        ❌ HATA verir: layout conflict
+#     __slots__ = ('z',)
+
+# Çünkü hem X hem Y kendi ayrı layout'larını tanımlar.
+# Python Z için tek bir bellek düzeni oluşturamaz:
+# [x] + [y] bellek seviyesinde çakışır.
+# Sonuç: TypeError: multiple bases have instance lay-out conflict
+
+
+
+class A:
+
+    __slots__ = ("a","b")
+
+    def __init__(self):
+        self.a = 10
+        self.b = 20 
+
+
+class B(A):
+
+    pass
+
+
+b = B() 
+
+print(
+    b.a,b.b # 10 20
+)
+
+class C(A):
+
+    __slots__ = ("c",) # slot'lar miras olarak taşınır bu nedenle burda bir override işlemi yoktur
+    # __slots__ = A.__slots__ + ("c",)
+
+    def __init__(self):
+        super().__init__()
+        self.c = 25
+
+c = C()
+
+print(c.c) #25
+print(c.a) #10 
+
+try:
+    c.z = 20
+
+except Exception as E: print(E) # 'C' object has no attribute 'z'
+
+
+class D(C):
+    pass
+
+d = D()
+
+print(
+    d.c #25
+)
+
+# D sınıfı kendi __slots__'unu tanımlamadığı için o sınıf için yeniden __dict__ oluşturulur 
+#ama subclass olduğundan dolayı superclass'ta ki __slots__ içindeki attribute'lara ulaşabilir 
+
+d.v = 90
+
+print(d.v) #90 
