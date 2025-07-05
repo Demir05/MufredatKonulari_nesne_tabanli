@@ -1,2 +1,0 @@
-User({'name': 'demir', 'age': 20, 'mother_name': 'aslı', 'country': 'Turkey', 'city': 'Istanbul', 'mari': False})
-User({'name': 'demir', 'age': 20, 'mother_name': 'aslı', 'country': 'Turkey', 'city': 'Istanbul', 'mari': False})
