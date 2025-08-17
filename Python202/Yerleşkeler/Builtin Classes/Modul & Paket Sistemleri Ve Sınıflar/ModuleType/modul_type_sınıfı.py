@@ -123,7 +123,7 @@
 # Python `import` işleminde şu mantığı izler:
 #   1. sys.modules içinde adı arar
 #   2. Varsa, doğrudan onu kullanır
-#   3. Yoksa, diske gider, dosyayı yükler, nesne oluşturur, sys.modules içine ekler
+#   3. Yoksa, diske gider (sys.path) kullanır, dosyayı yükler, nesne oluşturur, sys.modules içine ekler
 
 # (1) Davranışı:
 #   - Bir tür önbellek (cache)
@@ -241,3 +241,4 @@ new_imports = after - before
 print(new_imports)  # Çıktı: {'math'} gibi
 
 # ================================================================================
+
