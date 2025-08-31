@@ -8,6 +8,11 @@
 # - Bir exception instance’ının __traceback__ attribute’u,
 #   o exception oluştuğunda Python yorumlayıcısının yakaladığı
 #   "stack trace" bilgisini tutan özel bir nesnedir.
+#    call stack: python'da program çalışırken aktif olan fonksiyon çağrıların üst üste yığıldığı bir yapıdır
+#    bu yapı runtime boyunca sürekli değişir python fonksiyonları bu sıra ile çalıştıtır LİFO
+#    
+#    stack trace: bir exception aktif olduğunda call stack bilgisinin sabit olarak tutulduğu bir yapıdır
+#    call stack bilgisinin detaylı dökümünü verir traceback üzerinden erişilir 
 #
 # - Türü: types.TracebackType
 # - Bu nesne zincir şeklinde (linked list) önceki çağrı stack’lerini tutar.
@@ -128,3 +133,4 @@ handle_later()
 # Bu yapı sayesinde:
 #   Kullanıcı dostu mesajlar + Teknik analiz için detaylı traceback = 👑
 # ------------------------------------------------------------
+
