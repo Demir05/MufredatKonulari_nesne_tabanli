@@ -1,7 +1,10 @@
-import types, dis
+import types
+import dis
+
 
 def f(a, b):
     return a + b
+
 
 orig = f.__code__
 
@@ -13,16 +16,16 @@ new_code = types.CodeType(
     orig.co_nlocals,
     orig.co_stacksize,
     orig.co_flags,
-    orig.co_code,                 # ⚠️ ham bytecode'u aynen devralıyoruz
+    orig.co_code,  # ⚠️ ham bytecode'u aynen devralıyoruz
     orig.co_consts,
     orig.co_names,
     orig.co_varnames,
-    "synthetic_file.py",          # ← co_filename'i değiştiriyoruz (örnek)
-    "guncellenmis_f",             # ← co_name'i değiştiriyoruz (örnek)
+    "synthetic_file.py",  # ← co_filename'i değiştiriyoruz (örnek)
+    "guncellenmis_f",  # ← co_name'i değiştiriyoruz (örnek)
     orig.co_qualname,
     orig.co_firstlineno,
-    orig.co_linetable,            # 3.11+
-    orig.co_exceptiontable,       # 3.11+
+    orig.co_linetable,  # 3.11+
+    orig.co_exceptiontable,  # 3.11+
     orig.co_freevars,
     orig.co_cellvars,
 )
@@ -40,8 +43,10 @@ print(dis.Bytecode(new_code).dis())
 
 import types, dis
 
+
 def h(x):
     return x * 2
+
 
 c0 = h.__code__
 
@@ -118,6 +123,7 @@ print(dis.Bytecode(c1).dis())
 # • İnsan-dostu disassembly: dis.Bytecode(code_obj).dis()
 # • Metadata’yı güvenle güncellemek: code_obj.replace(co_name="yeni_ad", ...)
 # • Sürüm kırılgan ctor’dan kaçın: types.CodeType(...) yerine compile/replace tercih et.
+
 
 # -----------------------------------------------------------------------------
 # ✨ Mini Özet

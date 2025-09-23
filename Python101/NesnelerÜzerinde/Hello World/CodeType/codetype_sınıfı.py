@@ -26,6 +26,72 @@ import types
 # • co_freevars / co_cellvars → closure değişkenleri için kullanılır
 # • ve daha fazlası (co_stacksize, co_nlocals, co_lnotab...)
 
+# ──────────────────────────────────────────────────────────────
+# 🧠 CodeType Sınıfının Descriptor Tabanlı Mimari Yapısı
+# ──────────────────────────────────────────────────────────────
+
+# CodeType sınıfı, CPython yorumlayıcısında C diliyle tanımlanmış yerleşik bir sınıftır.
+# Bu nedenle sahip olduğu attribute'ların çoğu descriptor tabanlıdır.
+# Descriptor kullanımı, attribute erişimini hızlandırmak ve daha kontrollü hale getirmek için tercih edilir.
+
+# Bu descriptor'lar arasında member descriptor da bulunur.
+# Normalde Python sınıflarında __slots__ tanımlandığında member descriptor oluşur.
+# Ancak CodeType gibi C tabanlı sınıflarda __slots__ bulunmaz.
+# Bunun yerine CPython, attribute tanımları için PyMemberDef adlı özel bir C yapısı kullanır.
+
+# Örneğin co_code, co_name gibi attribute'lara eriştiğimizde descriptor protokolü devreye girer.
+# Bu attribute'lar data descriptor olarak tanımlanmıştır — yani hem __get__ hem __set__ metoduna sahiptirler.
+# Ancak CodeType sınıfı immutable olduğu için bu attribute'lar doğrudan değiştirilemez.
+# __set__ metodunun varlığı, bu attribute'ların manipüle edilebilir olması için değil,
+# attribute çözümlemesinde (lookup) öncelik kazanması içindir.
+
+# Data descriptor'lar, Python'da attribute çözümleme sıralamasında en yüksek önceliğe sahiptir.
+# Bu sayede instance seviyesindeki değerler override edilemez (shadowing engellenir).
+# Ayrıca yorumlayıcı daha az opcode yürütür, eval-loop daha az çalışır ve performans artar.
+
+# Sonuç olarak, CodeType sınıfındaki attribute'lar descriptor olsa bile,
+# __set__ metodunun varlığı, doğrudan atama için değil — çözümleme sırasında öncelik kazanmak içindir.
+
+"""
+__new__ ------> <class 'builtin_function_or_method'> __set__: False
+__repr__ ------> <class 'wrapper_descriptor'> __set__: False
+__hash__ ------> <class 'wrapper_descriptor'> __set__: False
+__lt__ ------> <class 'wrapper_descriptor'> __set__: False
+__le__ ------> <class 'wrapper_descriptor'> __set__: False
+__eq__ ------> <class 'wrapper_descriptor'> __set__: False
+__ne__ ------> <class 'wrapper_descriptor'> __set__: False
+__gt__ ------> <class 'wrapper_descriptor'> __set__: False
+__ge__ ------> <class 'wrapper_descriptor'> __set__: False
+__sizeof__ ------> <class 'method_descriptor'> __set__: False
+co_lines ------> <class 'method_descriptor'> __set__: False
+co_positions ------> <class 'method_descriptor'> __set__: False
+replace ------> <class 'method_descriptor'> __set__: False
+_varname_from_oparg ------> <class 'method_descriptor'> __set__: False
+__replace__ ------> <class 'method_descriptor'> __set__: False
+co_argcount ------> <class 'member_descriptor'> __set__: True
+co_posonlyargcount ------> <class 'member_descriptor'> __set__: True
+co_kwonlyargcount ------> <class 'member_descriptor'> __set__: True
+co_stacksize ------> <class 'member_descriptor'> __set__: True
+co_flags ------> <class 'member_descriptor'> __set__: True
+co_nlocals ------> <class 'member_descriptor'> __set__: True
+co_consts ------> <class 'member_descriptor'> __set__: True
+co_names ------> <class 'member_descriptor'> __set__: True
+co_filename ------> <class 'member_descriptor'> __set__: True
+co_name ------> <class 'member_descriptor'> __set__: True
+co_qualname ------> <class 'member_descriptor'> __set__: True
+co_firstlineno ------> <class 'member_descriptor'> __set__: True
+co_linetable ------> <class 'member_descriptor'> __set__: True
+co_exceptiontable ------> <class 'member_descriptor'> __set__: True
+co_lnotab ------> <class 'getset_descriptor'> __set__: True
+_co_code_adaptive ------> <class 'getset_descriptor'> __set__: True
+co_varnames ------> <class 'getset_descriptor'> __set__: True
+co_cellvars ------> <class 'getset_descriptor'> __set__: True
+co_freevars ------> <class 'getset_descriptor'> __set__: True
+co_code ------> <class 'getset_descriptor'> __set__: True
+__doc__ ------> <class 'str'> __set__: False
+
+"""
+
 # ------------------------------------------------------------
 # 🎯 Kullanım Alanları
 # • Debugging: derlenmiş kodu analiz etmek.

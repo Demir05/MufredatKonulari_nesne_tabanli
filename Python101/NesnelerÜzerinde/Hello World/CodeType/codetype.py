@@ -15,17 +15,6 @@
 # • Interpreter, çalıştıracağı bytecode'u doğrudan CodeType içinden alır.
 
 # ------------------------------------------------------------
-# ⚙️ CodeType İçinde Neler Var?
-# • .co_code      → ham bytecode (opcode'ların byte dizisi)
-# • .co_consts    → fonksiyonun sabitleri (sayısal değerler, stringler, inner function'lar)
-# • .co_varnames  → yerel değişkenlerin isimleri
-# • .co_names     → global isimler (print, range gibi çağrılar)
-# • .co_firstlineno → kaynak dosyadaki ilk satır numarası
-# • .co_filename  → kodun geldiği dosya adı
-# • .co_flags     → fonksiyon tipi bayrakları (generator, coroutine, async vb.)
-# • ve daha fazlası (co_freevars, co_cellvars...) closure ve scope yönetimi için vardır. 🧩
-
-# ------------------------------------------------------------
 # 🎯 Kullanım Alanları
 # • Debugging: Bir fonksiyonun bytecode'unu incelemek için.
 # • Performans Analizi: Hangi opcode'ların üretildiğini görmek için.
