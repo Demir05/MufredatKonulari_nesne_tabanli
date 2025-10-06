@@ -3,7 +3,7 @@
 ---
 
 #### 🧑‍🎓 **Yeni başlayan (CS öğrencisi)**
-#### 🕒 **Tahmini Süre: 140dk**
+#### 🕒 **Tahmini Süre: 180dk**
 
 ---
 
@@ -720,3 +720,4 @@ text.write("bytes") # ✅
 | 🔧 Encoding            | Yok                                 | Var (`utf-8`, `latin-1` vb.)             |
 | 🔁 Newline dönüşümü    | Hayır                               | Evet                                     |
 | 📄 Kullanım            | Binary dosyalar, ağ I/O             | Metin dosyaları, kullanıcı girdileri     |
+
