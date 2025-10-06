@@ -1,5 +1,12 @@
 # 🧩 1. AŞAMA — KAYNAK EDİNİMİ & ÖN İŞLEMLER
 
+
+---
+#### 🧑‍🎓 Yeni başlayan (CS öğrencisi)
+#### 🕒 **Tahmini Süre*: 90dk*
+
+---
+
 Python yorumlayıcısı **(Interpreter-CPython)** bir `.py` dosyasını çalıştırmaya başladığında,  
 ilk yaptığı şey aslında **dosyayı açmak** değil, **onu anlamlandırmaya hazırlamak**<sup>[1]</sup> olur.
 
