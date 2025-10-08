@@ -546,3 +546,544 @@ Module(
 > `bytes()` çağrısı her seferinde heap üzerinde yeni bir `PyBytesObject` üretir.  
 > Buna karşılık `b'...'` literal’leri derleme aşamasında sabitlenir ve Python’un **constant pool** yapısında saklanır.  
 > Bu sayede aynı içerikteki literal’ler bellekte paylaşılır (`b'ABC' is b'ABC' → True`) ve yeniden oluşturulmaz.
+
+---
+
+### ⚙️ `__new__` — `bytes` Nesnesi Oluşturucu Metodu
+
+### 📘 Tanım
+
+`__new__`, `bytes` sınıfının asıl **kurucu metodudur** (constructor).  
+`bytes` immutable (değiştirilemez) olduğu için, `__init__` aşaması devre dışıdır —  
+tüm veri işleme ve bellek tahsisi doğrudan `__new__` içinde gerçekleşir.
+
+---
+
+### 🧩 Davranış Özeti
+
+| 🔧 İşlem Aşaması | 📘 Açıklama                                                                 |
+|------------------|------------------------------------------------------------------------------|
+| `__new__` çağrısı | Python yorumlayıcısı `bytes(...)` ifadesini gördüğünde `__new__` metodunu tetikler. |
+| Girdi türleri     | `int`, `str`, `iterable`, `buffer` gibi kaynaklar kabul edilir.             |
+| Dönüşüm işlemi    | Girdi, ham byte dizisine çevrilir (`PyBytes_From...` fonksiyonlarıyla).     |
+| Dönüş değeri      | Sabit (`immutable`) bir `bytes` nesnesi döner.                             |
+
+> 💡 `__new__` → gelen girdiyi ham byte dizisine çevirir  
+> ve sabit (değiştirilemez) bir `bytes` nesnesi döndürür.
+
+---
+
+### 🧪 Örnek
+
+```python
+b1 = bytes([65, 66, 67])         # b'ABC'
+b2 = bytes('ABC', 'ascii')       # b'ABC'
+b3 = bytes(bytearray(b'XYZ'))    # b'XYZ'
+```
+
+---
+
+## 🧠 `bytes.__new__` — Sözdizimsel Açıklama
+
+### 📘 Sözel Tanım
+
+`__new__`, `bytes` sınıfının gerçek kurucu metodudur.  
+Immutable (değiştirilemez) yapılar için `__init__` çağrısı yapılmaz;  
+tüm nesne oluşturma işlemi doğrudan `__new__` içinde gerçekleşir.
+
+Bu metot, gelen girdiyi (`int`, `str`, `iterable`, `buffer`)  
+ham byte dizisine dönüştürür ve sabit bir `bytes` nesnesi döndürür.
+
+> 💡 `bytes(...)` ifadesi aslında `bytes.__new__(...)` çağrısını tetikler.
+
+---
+
+### 🧾 İmza
+
+```python
+bytes.__new__(cls, source='', encoding=None, errors=None) → bytes
+```
+### 🔧 `bytes.__new__` — Parametreler
+
+| 🧩 Parametre | 🧬 Tür                        | 📘 Açıklama                                                                 |
+|--------------|------------------------------|------------------------------------------------------------------------------|
+| `cls`        | `type`                       | Sınıf referansı (`bytes`), otomatik olarak verilir.                         |
+| `source`     | `str`, `int`, `iterable`, `buffer` | Byte dizisine dönüştürülecek kaynak veri.                             |
+| `encoding`   | `str`                        | Eğer `source` bir `str` ise, hangi karakter kodlamasıyla çevrileceği.       |
+| `errors`     | `str`                        | Kodlama sırasında hata yönetimi stratejisi (`'strict'`, `'ignore'`, vb.)    |
+
+---
+
+### 🔁 Dönüş Değeri
+
+| 🔙 Dönüş     | 📘 Açıklama                                                                 |
+|--------------|------------------------------------------------------------------------------|
+| `bytes`      | Yeni oluşturulmuş, immutable byte dizisi (`PyBytesObject`) döner.           |
+
+> 💡 Bu dönüş, CPython’da `bytes_new()` → `PyBytes_FromStringAndSize()` zinciriyle gerçekleştirilir.
+ 
+### 🔬 İleri Tanım — CPython'da `bytes` Oluşturma Davranışı
+
+---
+
+#### ⚙️ C Tarafında Oluşturma Fonksiyonu
+
+Python'da `bytes(...)` ifadesi çağrıldığında, CPython yorumlayıcısı bunu doğrudan C düzeyindeki şu fonksiyona yönlendirir:
+
+```c
+PyObject *PyBytes_FromStringAndSize(const char *str, Py_ssize_t size);
+```
+#### 🧩 `PyBytes_FromStringAndSize()` — Fonksiyon Açıklaması
+
+| 🔧 Alan   | 📘 Açıklama                                                                 |
+|-----------|------------------------------------------------------------------------------|
+| `str`     | Belleğe yazılacak kaynak byte dizisi (`char*`)                              |
+| `size`    | Byte dizisinin uzunluğu (`Py_ssize_t`)                                      |
+| Dönüş     | Yeni oluşturulmuş `PyBytesObject` → Python'da `bytes` nesnesi olarak görünür |
+
+> 💡 Bu fonksiyon, hem `bytes()` çağrılarında hem de `b'...'` literal’lerinde C düzeyinde byte dizisi üretmek için kullanılır.
+
+---
+
+### ⚠️ Dikkat Edilmesi Gerekenler — `bytes.__new__`
+
+| 🔍 Durum                | 📘 Açıklama                                                                 |
+|-------------------------|------------------------------------------------------------------------------|
+| **Immutable**           | `bytes` değiştirilemez; dilimleme (`b[1:3]`) yeni bir `bytes` nesnesi üretir. |
+| **0–255 Aralığı**       | `iterable` içindeki her sayı `0–255` aralığında olmalı, aksi halde `ValueError` oluşur. |
+| **Encoding zorunlu**    | `source` bir `str` ise, `encoding` parametresi mutlaka belirtilmelidir.      |
+| **Hatalı kullanım**     | `bytes("ABC")` → `TypeError: string argument without an encoding` hatası alınır. |
+| **Bellek optimizasyonu**| C tarafında `PyBytesObject` doğrudan heap üzerinde tahsis edilir.            |
+| **`bytearray` farkı**   | `bytearray()` aynı mantıkla çalışır fakat değiştirilebilir (`mutable`) nesne döndürür. |
+
+> 💡 Bu kurallar, hem Python hem C düzeyinde `bytes` nesnesinin güvenli ve doğru şekilde oluşturulmasını sağlar.
+
+---
+
+### 🧩 `bytes.fromhex()` — Tanım
+
+`bytes.fromhex(s)`, hexadecimal (16’lık) karakterlerden oluşan bir metni alır  
+ve bunu `bytes` nesnesine çevirir.  
+
+Her iki hexadecimal karakter → 1 byte eder.  
+Yani `"41"` → `b'A'`, çünkü `0x41` = `65` = `'A'`
+
+> 💡 Bu yöntem, metin tabanlı hex verilerini doğrudan RAM’e çevirmek için kullanılır.
+
+---
+
+#### 🧠 Sözdizimi
+
+```python
+bytes.fromhex(string: str) → bytes
+```
+#### 📌 `bytes.fromhex()` — Parametreler
+
+| 🔧 Parametre | 🧬 Tür | 📘 Açıklama                                                  |
+|--------------|--------|---------------------------------------------------------------|
+| `string`     | `str`  | Hexadecimal karakterlerden oluşan metin (`'41 42 43'`)        |
+
+---
+
+#### 🔁 Dönüş Değeri
+
+| 🔙 Dönüş | 📘 Açıklama                                                  |
+|----------|---------------------------------------------------------------|
+| `bytes`  | Hex verisinin karşılığı olan `bytes` nesnesi döner (`b'ABC'`) |
+
+> 💡 Her iki hex karakter → 1 byte. Boşluklar çiftleri ayırmak için kullanılabilir.
+
+#### 🔧 `bytes.fromhex()` — Kullanım Alanları (Kısa)
+
+| 🧩 Senaryo                              | 📘 Açıklama                                                                 |
+|----------------------------------------|------------------------------------------------------------------------------|
+| Hex dump’tan byte üretimi              | Metin tabanlı hex veriyi gerçek `bytes` nesnesine dönüştürmek için kullanılır. |
+| Ağ/ikili protokol testleri             | Paket verilerini hex formatında tanımlayıp RAM’e çevirmek mümkündür.         |
+| Şifreleme/kripto test vektörleri       | Kriptografik örneklerde hex tabanlı test girdileri oluşturmak için idealdir. |
+| Dosya imzası (magic bytes) üretimi     | Dosya türlerini tanımlayan sabit byte dizilerini string olarak yazıp çevirmek. |
+
+---
+
+#### ⚠️ Dikkat Edilecekler — `bytes.fromhex()`
+
+| 🔍 Durum                    | 📘 Açıklama                                                                 |
+|-----------------------------|------------------------------------------------------------------------------|
+| Boşluklar serbest           | `'41 42 43'` → `b'ABC'` ✅                                                  |
+| Büyük/küçük harf fark etmez | `'aa' == 'AA'` → `b'\xaa'` ✅                                               |
+| Çift sayı zorunlu           | `'f'` → ❌ `ValueError` (tek karakter eksik)                                |
+| `0x` öneki yasak            | `'0x41'` → ❌ `ValueError` (hex literal değil, sadece karakter dizisi olmalı) |
+| Geçersiz karakter           | `'zz'` → ❌ `ValueError` (hex olmayan karakterler)                          |
+| Kardeşi                     | `bytearray.fromhex(...)` → aynı işlev, ama yazılabilir nesne döndürür       |
+
+> 💡 Hex veriyi RAM’e aktarmak için hızlı, güvenli ve okunabilir bir yol sunar.
+
+---
+
+###  🧪 Temel kullanımlar
+
+---
+```python
+bytes.fromhex('41 42 43')         # b'ABC'
+bytes.fromhex('414243')           # b'ABC'
+bytes.fromhex('00 ff 10')         # b'\x00\xff\x10'
+bytes.fromhex('DE AD BE EF')      # b'\xde\xad\xbe\xef'
+
+# Boşluk, satır sonu, tab hepsi yok sayılır
+bytes.fromhex('41\t42\n43')       # b'ABC'
+
+# Hata örnekleri
+# bytes.fromhex('f')              # ValueError: non-hexadecimal number...
+# bytes.fromhex('0x41')           # ValueError
+
+# Doğrulama: .hex() tam tersi yönde çalışır
+b = bytes.fromhex('deadbeef')
+b.hex()                           # 'deadbeef'
+```
+
+```python
+bytes.fromhex(string)
+---------------------
+Bir hexadecimal (16’lık) karakter dizisini bytes nesnesine dönüştürür.
+Her iki hex karakter = 1 byte. Boşluklar yok sayılır.
+
+
+# Temel kullanım
+b = bytes.fromhex('41 42 43')
+print(b)  # b'ABC'
+
+
+Her iki karakter (ör. '41') bir byte oluşturur:
+'41' = 0x41 = 65 = 'A'
+'42' = 0x42 = 66 = 'B'
+'43' = 0x43 = 67 = 'C'
+
+
+# Boşluk, tab ve satır sonları göz ardı edilir
+b = bytes.fromhex('41\t42\n43')
+print(b)  # b'ABC'
+
+# Geçersiz karakter veya tek haneli hex değeri hataya yol açar.
+
+
+# Hatalı kullanım örnekleri
+bytes.fromhex('f')     # ValueError: non-hexadecimal number found
+bytes.fromhex('0x41')  # ValueError: 'x' geçersiz karakter
+
+
+#İki yönlü dönüşüm mümkündür:
+.hex()  # metodu bytes → hex string dönüşümü sağlar.
+
+
+b = bytes.fromhex('DE AD BE EF')
+print(b)          # b'\xde\xad\xbe\xef'
+print(b.hex())    # 'deadbeef'
+```
+```python
+"""
+1️⃣  Dosya imzası (Magic Bytes) tespiti
+--------------------------------------
+Her dosya türünün başında onu tanımlayan özel birkaç byte bulunur.
+Bunlara "magic bytes" denir.
+Örneğin PDF dosyaları %PDF (0x25 0x50 0x44 0x46) ile başlar.
+"""
+
+pdf_signature = bytes.fromhex('25 50 44 46')  # %PDF
+with open('example.pdf', 'rb') as f:
+    header = f.read(4)
+    if header == pdf_signature:
+        print("PDF dosyası tespit edildi!")  # ✅
+    else:
+        print("PDF değil.")
+```
+```python
+"""
+2️⃣  Şifreleme / Hash kontrol testlerinde referans karşılaştırması
+------------------------------------------------------------------
+Kripto veya hash fonksiyonlarının belgelerinde sonuç genelde hex formatında verilir.
+Biz bu çıktıyı bytes'a çevirerek programatik olarak doğrulayabiliriz.
+"""
+
+import hashlib
+
+# Beklenen SHA256 çıktısı (hex formatında)
+ref_hash = '2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824'
+expected = bytes.fromhex(ref_hash)
+
+# Gerçek hash sonucu
+real = hashlib.sha256(b'hello').digest()
+
+print(real == expected)  # ✅ True
+```
+```python
+"""
+4️⃣  Bellek veya opcode analizlerinde
+------------------------------------
+Disassembled bytecode çıktısı genellikle hex olarak verilir.
+Bu çıktıyı tekrar yürütülebilir hale getirmek için bytes.fromhex() kullanılabilir.
+"""
+
+import dis
+
+code = compile("x = 1 + 2", "<string>", "exec")
+print(code.co_code.hex())  # bytecode’un hex gösterimi
+
+# Bu hex verisini tekrar bytes’a çevirebiliriz
+byte_stream = bytes.fromhex(code.co_code.hex())
+print(byte_stream == code.co_code)  # ✅ True
+```
+
+---
+
+### 🔧 `bytes.maketrans()` ve `bytes.translate()` — Bayt Dönüşüm Araçları
+
+---
+
+### 🧩 `bytes.maketrans()` — Dönüşüm Tablosu Oluşturucu
+
+### 📘 Tanım
+
+`bytes.maketrans()` metodu, baytlar arasında eşleme yapan bir dönüşüm tablosu oluşturur.  
+Bu tablo, `bytes.translate()` ile birlikte kullanılarak bayt dizisindeki verilerin toplu şekilde dönüştürülmesini sağlar.
+
+### 🧠 Sözdizimi
+
+```python
+bytes.maketrans(from: bytes, to: bytes) → dict
+```
+
+### 📌 Parametreler
+
+| 🔧 Parametre | 🧬 Tür   | 📘 Açıklama                                                         |
+|--------------|---------|----------------------------------------------------------------------|
+| `from`       | `bytes` | Değiştirilecek baytlar (`b'abc'`)                                    |
+| `to`         | `bytes` | Yeni baytlar (`b'ABC'`) — uzunlukları eşit olmalı                    |
+
+
+### 🔁 Dönüş Değeri
+
+| 🔙 Dönüş | 📘 Açıklama                                                                 |
+|----------|------------------------------------------------------------------------------|
+| `dict`   | Bayt kod noktalarını eşleyen dönüşüm tablosu (`{97: 65, 98: 66, 99: 67}`)   |
+
+---
+
+### 🧩 Kullanım Alanları
+
+| 🎯 Senaryo                      | 📘 Açıklama                                                                 |
+|--------------------------------|------------------------------------------------------------------------------|
+| ASCII karakter dönüşümü        | Küçük harfleri büyük harfe çevirme gibi işlemler (`b'abc'` → `b'ABC'`)       |
+| Şifreleme / kodlama            | Basit karakter bazlı şifreleme algoritmaları için dönüşüm tablosu üretimi    |
+| Veri temizleme                 | Belirli baytları silmek veya dönüştürmek için `translate()` ile birlikte kullanılır |
+| Protokol uyarlamaları          | Ağ veya dosya protokollerinde karakter eşlemeleri için kullanılabilir        |
+
+
+
+### ⚠️ Dikkat Edilmesi Gerekenler
+
+| 🔍 Durum                     | 📘 Açıklama                                                                 |
+|------------------------------|------------------------------------------------------------------------------|
+| Uzunluk eşitliği zorunlu     | `from` ve `to` bayt dizilerinin uzunlukları aynı olmalıdır (`len(from) == len(to)`) |
+| Sadece `bytes` nesneleri     | Hem `from` hem `to` parametreleri `bytes` olmalıdır, `str` kabul edilmez     |
+| Unicode değil, bayt düzeyi   | Bu dönüşüm `str.translate()` gibi Unicode karakterlerle değil, bayt kodlarıyla çalışır |
+| `bytearray` ile uyumlu       | Oluşturulan tablo hem `bytes.translate()` hem `bytearray.translate()` ile kullanılabilir |
+
+---
+```python
+# bytes_translate_examples.py
+
+# 🔧 Örnek 1: Küçük harfleri büyük harfe çevirme
+table = bytes.maketrans(b'abc', b'ABC')  # a→A, b→B, c→C
+data = b'abcxyz'
+result = data.translate(table)
+print(result)  # b'ABCxyz'
+
+# 🔧 Örnek 2: Belirli baytları silme
+table = bytes.maketrans(b'', b'')        # boş dönüşüm tablosu
+data = b'abcxyz'
+result = data.translate(table, delete=b'xz')  # x ve z silinir
+print(result)  # b'abcy'
+
+# 🔧 Örnek 3: ASCII şifreleme — basit karakter kaydırma
+# a→d, b→e, c→f
+table = bytes.maketrans(b'abc', b'def')
+data = b'abcabc'
+result = data.translate(table)
+print(result)  # b'defdef'
+
+# 🔧 Örnek 4: Ters çevirme — büyük harfleri küçük harfe
+table = bytes.maketrans(b'ABC', b'abc')
+data = b'ABCXYZ'
+result = data.translate(table)
+print(result)  # b'abcXYZ'
+
+# 🔧 Örnek 5: bytearray ile aynı tabloyu kullanma
+table = bytes.maketrans(b'123', b'321')
+ba = bytearray(b'112233')
+ba_result = ba.translate(table)
+print(ba_result)  # bytearray(b'331122')
+```
+---
+
+### 🧩 `bytes.translate()` — Bayt Dizisi Dönüştürücü
+
+---
+
+### 📘 Tanım
+
+`bytes.translate()` metodu, bir dönüşüm tablosu kullanarak bayt dizisindeki verileri dönüştürür.  
+Bu yöntem, karakter değiştirme, filtreleme veya şifreleme gibi işlemler için idealdir.
+
+---
+
+### 🧠 Sözdizimi
+
+```python
+b.translate(table: dict, delete: Optional[bytes] = None) → bytes
+```
+
+### 📌 Parametreler
+
+| 🔧 Parametre | 🧬 Tür   | 📘 Açıklama                                                                 |
+|--------------|---------|------------------------------------------------------------------------------|
+| `table`      | `dict`  | `bytes.maketrans()` ile oluşturulmuş dönüşüm tablosu                         |
+| `delete`     | `bytes` | Silinecek baytlar (isteğe bağlı)                                            |
+
+
+
+### 🔁 Dönüş Değeri
+
+| 🔙 Dönüş | 📘 Açıklama                                                                 |
+|----------|------------------------------------------------------------------------------|
+| `bytes`  | Dönüştürülmüş yeni `bytes` nesnesi                                          |
+
+
+---
+
+### 🎯 Kullanım Alanları
+
+| Senaryo               | Açıklama                                                                 |
+|------------------------|--------------------------------------------------------------------------|
+| Karakter dönüşümü      | ASCII karakterleri topluca değiştirme (`b'abc'` → `b'ABC'`)              |
+| Veri filtreleme        | Belirli baytları silme (`delete=b'xz'`)                                  |
+| Şifreleme / kodlama    | Basit karakter bazlı şifreleme algoritmaları (`ROT13`, `Caesar`, vb.)    |
+| Protokol uyarlamaları  | Bayt düzeyinde veri dönüştürme (örneğin ağ protokollerinde)              |
+| Veri temizleme         | ASCII dışı karakterleri ayıklama veya normalize etme                     |
+
+
+### ⚠️ Dikkat Edilmesi Gerekenler
+
+| Durum                    | Açıklama                                                                 |
+|---------------------------|--------------------------------------------------------------------------|
+| `table` zorunlu           | Dönüşüm tablosu belirtilmeden `translate()` çağrısı yapılamaz            |
+| `delete` opsiyoneldir     | Belirtilirse, listedeki baytlar silinir                                  |
+| `bytes` nesnesi değişmez  | `translate()` yeni bir `bytes` nesnesi döndürür, orijinal veri değişmez  |
+| `table` → `dict[int, int]`| Anahtar ve değerler bayt kod noktaları (`ord(b'a')` → `ord(b'A')`)       |
+| Unicode değil, bayt düzeyi| Bu metod `str.translate()` gibi Unicode karakterlerle değil, baytlarla çalışır |
+
+> 💡 `bytes.translate()` → hızlı, doğrudan ve bellek dostu bayt dönüşüm aracıdır.
+
+---
+```python
+# bytes_translate_examples.py
+
+# 🔧 Örnek 1: Küçük harfleri büyük harfe çevirme
+# 'a' → 'A', 'b' → 'B', 'c' → 'C'
+table = bytes.maketrans(b'abc', b'ABC')
+data = b'abcxyz'
+result = data.translate(table)
+print(result)  # b'ABCxyz'
+
+# 🔧 Örnek 2: Belirli baytları silme
+# 'x' ve 'z' karakterleri silinir
+table = bytes.maketrans(b'', b'')  # boş dönüşüm tablosu
+data = b'abcxyz'
+result = data.translate(table, delete=b'xz')
+print(result)  # b'abcy'
+
+# 🔧 Örnek 3: ASCII şifreleme — Caesar tarzı kaydırma
+# 'a' → 'd', 'b' → 'e', 'c' → 'f'
+table = bytes.maketrans(b'abc', b'def')
+data = b'abcabc'
+result = data.translate(table)
+print(result)  # b'defdef'
+
+# 🔧 Örnek 4: Ters çevirme — büyük harfleri küçük harfe
+# 'A' → 'a', 'B' → 'b', 'C' → 'c'
+table = bytes.maketrans(b'ABC', b'abc')
+data = b'ABCXYZ'
+result = data.translate(table)
+print(result)  # b'abcXYZ'
+
+# 🔧 Örnek 5: bytearray ile aynı tabloyu kullanma
+# '1' → '3', '2' → '2', '3' → '1'
+table = bytes.maketrans(b'123', b'321')
+ba = bytearray(b'112233')
+ba_result = ba.translate(table)
+print(ba_result)  # bytearray(b'331122')
+
+# 🔧 Örnek 6: ASCII dışı karakterleri filtreleme
+# Türkçe karakterleri silmek için delete parametresi kullanılır
+data = 'Merhaba, dünya!'.encode('utf-8')
+delete = 'çşğüöı'.encode('utf-8')  # silinecek karakterler
+table = bytes.maketrans(b'', b'')  # dönüşüm yapılmayacak
+filtered = data.translate(table, delete=delete)
+print(filtered.decode('utf-8', errors='ignore'))  # Merhaba, dnya!
+```
+---
+
+### 🧩 `bytes.decode()` — Bayt Dizisini Metne Çevirme
+
+---
+
+### 📘 Tanım
+
+`bytes.decode()` metodu, bayt dizisini belirtilen karakter kodlamasına göre `str` (metin) nesnesine dönüştürür.  
+Bu işlem, baytların hangi karakterleri temsil ettiğini çözümlemek için kullanılır.
+
+---
+
+### 🧠 Sözdizimi
+
+```python
+b.decode(encoding='utf-8', errors='strict') → str
+```
+
+### 📌 Parametreler
+
+| 🔧 Parametre | 🧬 Tür   | 📘 Açıklama                                                                 |
+|--------------|---------|------------------------------------------------------------------------------|
+| `encoding`   | `str`   | Kullanılacak karakter kodlaması (varsayılan: `'utf-8'`)                      |
+| `errors`     | `str`   | Hata işleme stratejisi (`'strict'`, `'ignore'`, `'replace'`, vb.)            |
+
+
+
+### 🔁 Dönüş Değeri
+
+| 🔙 Dönüş | 📘 Açıklama                                                                 |
+|----------|------------------------------------------------------------------------------|
+| `str`    | Bayt dizisinin karakter kodlamasına göre çözülmüş metin hali                |
+
+---
+
+### 🎯 Kullanım Alanları
+
+| Senaryo                 | 📘 Açıklama                                                                 |
+|--------------------------|------------------------------------------------------------------------------|
+| Dosya okuma              | Bayt olarak okunan veriyi metne çevirmek için (`rb` → `.decode()`)          |
+| Ağ verisi çözümleme      | Socket üzerinden gelen baytları metne dönüştürmek                           |
+| Şifreleme sonrası çözüm  | Şifrelenmiş veriyi çözümleyip okunabilir hale getirme                       |
+| Unicode dönüşümü         | UTF-8, UTF-16 gibi kodlamalardan metin elde etme                            |
+| API/JSON işleme          | Bayt olarak gelen JSON verisini string’e çevirip `json.loads()` ile işlemek |
+
+
+
+### ⚠️ Dikkat Edilmesi Gerekenler
+
+| Durum                    | 📘 Açıklama                                                                 |
+|---------------------------|------------------------------------------------------------------------------|
+| Kodlama uyumsuzluğu       | Yanlış encoding seçilirse `UnicodeDecodeError` oluşabilir                   |
+| Varsayılan UTF-8          | Kodlama belirtilmezse `'utf-8'` kullanılır                                  |
+| Hata stratejisi önemli    | `'strict'` → hata fırlatır, `'ignore'` → hatalı karakteri atlar, `'replace'` → `�` ile değiştirir |
+| Sadece `bytes` için geçerli| `str` nesnelerinde `.decode()` yoktur; sadece `bytes` nesnelerinde çalışır |
+
+> 💡 `decode()` → baytları anlamlı metne dönüştürmenin temel yoludur.
