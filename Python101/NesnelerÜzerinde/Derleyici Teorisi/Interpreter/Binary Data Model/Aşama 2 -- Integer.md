@@ -234,6 +234,94 @@ def __new__(cls: type[int],
 | `base`      | `int`            | Sadece `x` bir `str`, `bytes` veya `bytearray` ise kullanılır (örn. `int("101", 2)`). |
 | `return`    | `int`            | Yeni oluşturulmuş `int` nesnesi döner.                                      |
 
+---
+
+#### 🧠 `base` Parametresi — Kapsamlı Tanım, Kullanım Alanları ve Örnekler
+
+Python'da `int(x, base)` fonksiyonu, metin tabanlı bir değeri belirtilen sayı sistemine göre tamsayıya dönüştürmek için kullanılır.  
+Bu dönüşüm yalnızca `x` bir `str`, `bytes` veya `bytearray` olduğunda geçerlidir. Diğer türler için `base` kullanımı `TypeError` ile sonuçlanır.
+
+
+
+#### 🎯 Amaç
+
+`base` parametresi, `"101"`, `"FF"`, `"hello"` gibi metinleri **belirli bir sayı sistemine göre** çözümleyerek sayıya dönüştürmek için kullanılır.  
+Bu özellik, farklı tabanlarda veri kodlama, kısa ID üretimi, hash çözümleme gibi işlemlerde kritik rol oynar.
+
+
+
+#### 🔢 Geçerli Taban Aralığı
+
+| 🔣 Taban | 🎯 Açıklama |
+|---------|-------------|
+| `2`     | İkilik sistem (`0–1`) — düşük seviye bit işlemleri |
+| `8`     | Sekizlik sistem (`0–7`) — eski Unix dosya izinleri |
+| `10`    | Ondalık sistem (`0–9`) — günlük kullanım |
+| `16`    | Onaltılık sistem (`0–9`, `a–f`) — renk kodları, bellek adresleri |
+| `32`    | Otuzikilik sistem (`0–9`, `a–v`) — veri sıkıştırma, base32 encoding |
+| `36`    | En geniş sistem (`0–9`, `a–z`) — kısa ID üretimi, URL kodlama |
+
+> 💡 `base=36` ile `"z"` → `35`, `"10"` → `36`, `"hello"` gibi metinler sayıya dönüştürülebilir.
+
+---
+
+### 🔣 Otomatik Taban Algılama (`base=0`)
+
+`base=0` özel bir moddur. Bu durumda Python, `x`’in içeriğine bakarak ön ekine göre tabanı otomatik olarak algılar:
+
+| 🔍 Ön Ek | 📘 Taban | 🎯 Örnek |
+|---------|----------|----------|
+| `0b`    | 2        | `"0b1010"` → 10 |
+| `0o`    | 8        | `"0o77"` → 63 |
+| `0x`    | 16       | `"0xFF"` → 255 |
+| (yok)   | 10       | `"42"` → 42 |
+
+
+
+### ⚠️ Dikkat Edilmesi Gerekenler
+
+| ⚠️ Durum | 💬 Açıklama |
+|---------|-------------|
+| `base` yalnızca metin tabanlı türlerde geçerlidir | `str`, `bytes`, `bytearray` dışında `base` kullanımı `TypeError` üretir |
+| Geçerli taban aralığı `2 ≤ base ≤ 36` | Daha düşük veya yüksek değerler `ValueError` üretir |
+| `base=0` ön ek analizine dayanır | Ön ek yoksa sayı ondalık varsayılır |
+| Harfler büyük/küçük fark etmez | `"A"` ≡ `"a"`; karakter çözümlemesi case-insensitive'dir |
+| `base=36` maksimum karakter desteği sağlar | `0–9` + `a–z` → toplam 36 karakterlik çözümleme alanı |
+
+---
+
+### 📂 Örnek — base kullanımını gösteren Python dosyası
+
+```python
+# base_parametre_demo.py
+
+# İkilik sistem: sadece 0 ve 1 geçerli
+print(int("101", 2))        # → 5
+
+# Onaltılık sistem: 0–9 ve a–f geçerli
+print(int("FF", 16))        # → 255
+
+# Otuzikilik sistem: 0–9 ve a–v geçerli
+print(int("hello", 32))     # → 29234652
+
+# Otuzaltılık sistem: 0–9 ve a–z geçerli
+print(int("z", 36))         # → 35
+print(int("10", 36))        # → 36
+print(int("python", 36))    # → 1365101069
+
+# Otomatik taban algılama: base=0
+print(int("0xFF", 0))       # → 255
+print(int("0b1010", 0))     # → 10
+print(int("42", 0))         # → 42
+
+# Hatalı kullanım: base geçersiz türle birlikte kullanılırsa TypeError
+# print(int(42, 2))         # ❌ TypeError: int() can't convert non-string with explicit base
+
+# Hatalı kullanım: base aralık dışında olursa ValueError
+# print(int("101", 1))      # ❌ ValueError: base must be >= 2 and <= 36
+
+---
+
 #### 📊 `int()` Yapıcısında `base` Parametresi Davranış Tablosu
 
 | 🧩 `x` Türü        | ⚙️ `base` Geçerli mi? | 🎯 Açıklama |
