@@ -21,13 +21,19 @@ bit düzeyinde işlem yapabilen, immutable (değiştirilemez) bir nesnedir.
 - C tarafında her `int` nesnesi, **`PyLongObject`** yapısının bir örneğidir.
 
 #### 🔹 Özellikler
-| Özellik | Açıklama |
-|----------|-----------|
-| **Immutable** | `int` değerleri değiştirilemez (her işlem yeni nesne üretir). |
-| **Arbitrary precision** | 32/64-bit sınırı yoktur; Python gerekirse belleği büyütür. |
-| **Hashable** | Sözlük anahtarı olarak kullanılabilir. |
-| **C tabanı** | `longobject.c` içinde tanımlıdır (`Include/longobject.h`). |
+| ⚙️ Özellik              | 📘 Açıklama                                                                 |
+|-------------------------|------------------------------------------------------------------------------|
+| **Immutable**           | `int` değerleri değiştirilemez — her işlem (`+`, `-`, `*`) yeni nesne üretir. |
+| **Arbitrary precision** | 32/64-bit sınırı yoktur; Python gerekirse belleği büyütür (`ob_digit[]`).     |
+| **Hashable**            | `int` nesneleri sözlük anahtarı olarak kullanılabilir.                        |
+| **C tabanı**            | CPython’da `longobject.c` içinde tanımlıdır (`Include/longobject.h`).         |
+| **İşaret yönetimi**     | `Py_SIZE()` pozitif/negatif işareti belirler; `long_add()` bunu kontrol eder. |
+| **Küçük sayı optimizasyonu** | `MEDIUM_VALUE(a) + MEDIUM_VALUE(b)` ile hızlı toplama yapılır.               |
+| **Çok basamaklı destek**| `x_add()` ve `x_sub()` fonksiyonları büyük sayılar için özel algoritmalar içerir. |
+| **Bellek güvenliği**    | `Py_REFCNT(z) == 1` kontrolü ile in-place değişiklikler güvence altına alınır. |
 
+> 🧠 Not: `long_add()` fonksiyonu, Python’daki `a + b` işleminin C düzeyindeki karşılığıdır.  
+> Hem işaret hem de basamak sayısına göre farklı algoritmalar çağrılır
 ---
 
 ---
