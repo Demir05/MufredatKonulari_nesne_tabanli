@@ -153,6 +153,19 @@ Bu yapı sayesinde Python, built-in türler için maksimum hızda çalışır.
 
 ---
 
+### 🧠 Python `int` Türü — Sistemsel Özellikler Tablosu
+
+| 🔢 # | 🧩 Başlık                         | 📘 Açıklama |
+|-----|----------------------------------|------------|
+| 1️⃣  | **Bellek Sınırı**                | `int` matematiksel olarak sınırsızdır, ancak donanımda belleğin fiziksel sınırlarıyla sınırlıdır. |
+| 2️⃣  | **Protokol Uyumu**               | `int`, hem `number protocol` hem `object protocol` arayüzlerini uygular; sayısal işlemlere katılır ve birinci sınıf nesne gibi davranır. |
+| 3️⃣  | **C Temsili: `PyLongObject`**    | CPython’da her `int` örneği `PyLongObject` ile temsil edilir. `long_add()` gibi fonksiyonlar, `MEDIUM_VALUE` optimizasyonlarıyla küçük sayıları daha hızlı işler. |
+| 4️⃣  | **Binary Modelin Temeli**        | `int`, Python’un binary veri modelinin temelidir. `bool` doğrudan miras alır; `float`, `complex`, `__index__`, `bytes` gibi türler dolaylı olarak kullanır. |
+| 5️⃣  | **Sabit Bellek Düzeni**          | `PyLongObject` yalnızca `ob_digit[]` içerir; `__dict__` gibi genişletme alanları yoktur. Bu nedenle `int` nesneleri davranışsal olarak genişletilemez. |
+| 6️⃣  | **Opcode Zinciri: `CALL_FUNCTION`** | `int()` çağrısı `CALL_FUNCTION` opcode’u ile başlar, `PyObject_Call()` fonksiyonunu tetikler ve doğrudan C düzeyindeki `tp_call` zincirine bağlanır; `__new__` ve `__call__` bypass edilir. |
+
+---
+
 ### 🧩 `int` Sınıfının Attribute ve Dunder Metotları
 
 Python’daki `int` sınıfı, hem **sayısal protokolü** hem **nesne protokolünü** uygular.  
