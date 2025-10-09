@@ -34,6 +34,8 @@ bit düzeyinde işlem yapabilen, immutable (değiştirilemez) bir nesnedir.
 
 > 🧠 Not: `long_add()` fonksiyonu, Python’daki `a + b` işleminin C düzeyindeki karşılığıdır.  
 > Hem işaret hem de basamak sayısına göre farklı algoritmalar çağrılır
+
+> 🧠 Büyük sayı işlemi, küçük sayıya göre yaklaşık **%11.96** daha yavaş çalışıyor. ⚡
 ---
 
 ---
@@ -54,6 +56,8 @@ bir **built-in (yerleşik)** sınıftır.
 
 > 🧩 `int` sınıfı, Binary Data Model’in “bit ve sayısal işlem” katmanının temel taşıdır.  
 > Tüm `bytes`, `bool`, `float`, `complex` türleri, `int`’in davranış modelini miras alır.
+
+> 🧠 Python’un sayısal veri modeli, bit düzeyindeki tüm türlerin davranışını `int` sınıfı üzerinden tanımlar; `bool`, `float`, `complex` gibi türler bu temel modeli miras alırken, `bytes` gibi türler onu dolaylı olarak kullanır.
 
 ---
 
