@@ -229,12 +229,20 @@ C düzeyinde `tp_new` slot’u aracılığıyla `long_new` fonksiyonuna yönlend
 `long_new`, `longobject.c` içinde tanımlıdır ve `PyLongObject` türündeki nesneleri üretir.  
 Bellek tahsisi burada `PyLong_New()` veya `_PyLong_New()` gibi optimize edilmiş fonksiyonlarla yapılır.
 
-> 🎯 Yani `int.__new__`, `object.__new__` gibi genel bir yol izlemez.  
-> Bunun yerine doğrudan tamsayılar için ayrılmış, hızlı ve özel bellek yapıları kullanılır.
+#### 🎯 Neden `__new__` içinde `super().__new__()` çağrısı yapılmalı?
 
-Bu sayede:
-- Python’daki `int` sınıfı büyük sayıları destekleyebilir.  
-- Küçük sayılar için `medium_add` gibi hızlı yol optimizasyonları devreye girer.
+Python’da bir nesne oluşturulurken, `__new__` metodu belleği tahsis eden ilk adımdır.  
+Ancak bu tahsis işlemi, doğrudan yapılmaz — mutlaka üst sınıfın `__new__` metoduna yönlendirilmelidir.
+
+Bu nedenle `super().__new__(cls)` veya `int.__new__(cls, value)` gibi çağrılar,  
+**bellek tahsisi için zorunlu** bir adımdır. Aksi takdirde nesne fiziksel olarak oluşturulmaz.
+
+> 📌 Özellikle built-in sınıflarda (`int`, `float`, `list`...), bu çağrı  
+> CPython’daki `tp_new` slot’una gider ve ilgili C fonksiyonunu (`long_new`, `float_new`...) tetikler.  
+> Bu fonksiyonlar da belleği `tp_alloc` üzerinden ayırır.
+
+Yani `__new__` metodunun içinde `super().__new__()` çağrısı yapmak,  
+sadece iyi bir pratik değil — **nesnenin var olabilmesi için temel bir gerekliliktir**.
 
 ---
 
