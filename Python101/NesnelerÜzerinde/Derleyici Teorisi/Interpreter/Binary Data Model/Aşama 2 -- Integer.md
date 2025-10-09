@@ -127,19 +127,140 @@ Aşağıdaki işlem sırası, `x = int(5.8)` gibi bir ifadenin Python yorumlayı
 - Yani Python burada herhangi bir `__call__` override’ı veya Python düzeyinde dispatch yapmaz.
 - Çağrı zinciri doğrudan C düzeyindeki `int.__new__()` veya `int.__call__()` fonksiyonuna bağlanır.
 
-`int(5.8)` **çağrısı şu şekilde çalışır:**
+### 🧩 `int(42)` — CPython C Çağrı Zinciri (A'dan Z'ye)
+
+#### 1️⃣ AŞAMA: `CALL` opcode
+
+🧠 Amaç: `int` nesnesine argüman verilerek çağrı başlatılır  
+📌 Sonuç: `PyObject_Call()` fonksiyonuna gidilir
+
+```c
+// Python bytecode: CALL
+// → eval.c içinde CALL_FUNCTION → → PyObject_Call(...)
+```
+#### 2️⃣ AŞAMA: `PyObject_Call()`
+
+🧠 Amaç: Genel çağrı mekanizması. Tüm Python nesneleri burada çağrılır  
+📌 Sonuç: Eğer `tp_call` slot'u varsa, onu kullan
+
+```c
+PyObject *
+PyObject_Call(PyObject *callable, PyObject *args, PyObject *kwargs)
+{
+    if (callable->ob_type->tp_call != NULL) {
+        // int gibi bir class için → tp_call = type_call
+        return (*callable->ob_type->tp_call)(callable, args, kwargs);
+    }
+
+    // Eğer tp_call tanımlı değilse, __call__ attribute'u denenir (user-defined objeler için)
+    return call_call(callable, args, kwargs);
+}
 
 ```
-PyObject_Call(int_type, (5.8,), NULL)
-│
-└──> tp_call(int_type)
-      │
-      └──> type_call()         ← C fonksiyonu
-             │
-             └──> int_type->tp_new = long_new()
-                    │
-                    └──> PyLong_FromDouble(5.8)
+
+#### 3️⃣ AŞAMA: `type_call()`
+
+🧠 Amaç: `int()` gibi bir sınıf objesi çağrıldı → örnek oluşturmak  
+📌 Sonuç: `tp_new()` ile nesne yarat, sonra gerekirse `tp_init()` ile başlat
+```c
+static PyObject *
+type_call(PyTypeObject *type, PyObject *args, PyObject *kwds)
+{
+    // __new__ çağrısı
+    PyObject *obj = type->tp_new(type, args, kwds);
+    if (obj == NULL)
+        return NULL;
+
+    // ✅ Kritik Nokta: Nesne tipi doğru mu?
+    if (!PyType_IsSubtype(Py_TYPE(obj), type)) {
+        PyErr_Format(PyExc_TypeError,
+            "__new__() returned non-%s (type %s)",
+            type->tp_name,
+            Py_TYPE(obj)->tp_name);
+        Py_DECREF(obj);
+        return NULL;
+    }
+
+    // __init__ çağrısı (int gibi immutable’lar için çoğu zaman boş)
+    if (type->tp_init != NULL) {
+        if (type->tp_init(obj, args, kwds) < 0) {
+            Py_DECREF(obj);
+            return NULL;
+        }
+    }
+
+    return obj;  // ✔️ Nesne başarıyla döner
+}
+
 ```
+
+#### 4️⃣ AŞAMA: `tp_new = long_new`
+
+🧠 Amaç: `int` türüne özgü nesne yaratımı  
+📌 Sonuç: Argüman parse edilir → `PyLong_FromLong` veya `PyLong_FromUnicode` çağrılır
+```c
+static PyObject *
+long_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
+{
+    // Argümanı çözümler (örneğin: int("42"))
+    PyObject *x;
+    long base = -1;
+
+    if (!PyArg_ParseTuple(args, "O|l", &x, &base))
+        return NULL;
+
+    // str girdisi varsa özel parse yapılır
+    if (PyUnicode_Check(x)) {
+        return _PyLong_FromUnicodeObject(x, base);
+    }
+
+    // int benzeri bir şeyse long'a çevir
+    return PyNumber_Long(x);  // → PyLong_FromLong(...) zincirine gider
+}
+
+```
+#### 5️⃣ AŞAMA: `PyLong_FromLong()`
+
+🧠 Amaç: Sayı -5 ile 256 arası mı? Cache'ten al  
+📌 Sonuç: Eğer değilse yeni `PyLongObject` yarat
+```c
+PyObject *
+PyLong_FromLong(long ival)
+{
+    if (-NSMALLNEGINTS <= ival && ival < NSMALLPOSINTS) {
+        // 🔁 Daha önceden belleğe alınmış sabit sayı döndürülür
+        return (PyObject *)small_ints[ival + NSMALLNEGINTS];
+    }
+
+    // Yeni nesne yaratılır
+    return PyLong_FromLongImpl(ival);
+}
+
+```
+#### 6️⃣ AŞAMA: `_PyLong_Init()`
+
+🧠 Amaç: CPython başlarken küçük tamsayı cache'ini hazırlar  
+📌 Sonuç: Bu sayılar tekrar tekrar oluşturulmaz
+```c
+void _PyLong_Init(void)
+{
+    for (i = -NSMALLNEGINTS; i < NSMALLPOSINTS; i++) {
+        // PyLongObject üret → cache’e yerleştir
+        small_ints[i + NSMALLNEGINTS] = PyLong_FromLongImpl(i);
+    }
+}
+
+```
+#### 📌 🔑 ÖNEMLİ NOTLAR — CPython `int` Oluşturma Süreci
+
+| 🧩 Konu             | 💬 Detay                                                                 |
+|---------------------|--------------------------------------------------------------------------|
+| `tp_call`           | Sınıf çağrıları için genellikle `type_call`'a atanır                    |
+| `tp_new`            | Sınıfın örneğini yaratır; `int` için `long_new`                         |
+| `PyLong_FromLong`   | `int(x)` gibi işler; önce cache’e bakar                                 |
+| `type_call`         | `__new__` dönüş tipi doğru değilse `TypeError` fırlatır                 |
+| `small_ints[]`      | `-5` ile `256` arası sayılar burada tutulur, doğrudan RAM'den çekilir   |
+
 ---
 
 ### 🧩 Sonuç
@@ -1314,4 +1435,3 @@ Ancak bazı sınırlamaları ve davranış özellikleri vardır. Aşağıda bu n
 
 > 💡 Bu özellikler, `bin()` fonksiyonunun güvenli ve doğru şekilde kullanılmasını sağlar.  
 > Özellikle tür kontrolü ve dönüşüm biçimi, hata ayıklama ve görselleştirme süreçlerinde kritik rol oynar.
-
