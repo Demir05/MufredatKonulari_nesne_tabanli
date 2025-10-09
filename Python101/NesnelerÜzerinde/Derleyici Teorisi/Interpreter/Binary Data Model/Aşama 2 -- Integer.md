@@ -234,8 +234,23 @@ def __new__(cls: type[int],
 | `base`      | `int`            | Sadece `x` bir `str`, `bytes` veya `bytearray` ise kullanılır (örn. `int("101", 2)`). |
 | `return`    | `int`            | Yeni oluşturulmuş `int` nesnesi döner.                                      |
 
-> ⚠️ Not: `base` parametresi yalnızca `x` bir karakter dizisi (veya bayt dizisi) olduğunda geçerlidir.  
-> Aksi halde `TypeError` fırlatılır.
+#### 📊 `int()` Yapıcısında `base` Parametresi Davranış Tablosu
+
+| 🧩 `x` Türü        | ⚙️ `base` Geçerli mi? | 🎯 Açıklama |
+|-------------------|----------------------|-------------|
+| `int`             | ❌ Hayır              | Zaten `int`, dönüşüm gerekmez; `base` kullanılamaz. |
+| `float`           | ❌ Hayır              | Ondalıklı sayı tabanla yorumlanamaz; `base` geçersizdir. |
+| `bool`            | ❌ Hayır              | `True → 1`, `False → 0` sabit dönüşüm; `base` etkisizdir. |
+| `str`             | ✅ Evet               | `"101"` gibi metinler belirtilen tabana göre çözülür. |
+| `bytes`           | ✅ Evet               | `b"77"` gibi bayt dizileri belirtilen tabana göre çözülür. |
+| `bytearray`       | ✅ Evet               | `bytearray(b"FF")` gibi yapılar belirtilen tabana göre çözülür. |
+
+> 🎯 **Amaç:** `base` parametresi, metin tabanlı sayıların hangi sayı sistemine göre çözümleneceğini belirtmek için kullanılır.  
+> Bu sayede `"101"` gibi bir metin, ikilik (`base=2`), sekizlik (`base=8`), onaltılık (`base=16`) gibi farklı tabanlarda doğru şekilde sayıya dönüştürülebilir.
+
+> 💡 **Not:** `base=0` özel bir moddur; bu durumda Python, `x`’in ön ekine göre tabanı otomatik seçer (`0b`, `0x`, `0o`).  
+> Diğer türler için `base` kullanımı `TypeError` ile sonuçlanır.
+.
 
 ---
 
