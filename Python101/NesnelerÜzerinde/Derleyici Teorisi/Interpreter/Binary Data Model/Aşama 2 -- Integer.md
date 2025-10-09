@@ -218,6 +218,26 @@ Yani `__init__` aşaması, bellekteki değeri değiştiremez — sadece var olan
 
 ---
 
+#### 🔢 `int.__new__` — CPython C Düzeyinde Ne Olur?
+
+Python’da `int.__new__` metodu, bir tamsayı nesnesi oluşturmak için çağrılır.  
+Ancak bu işlem, sıradan sınıflardan farklı olarak CPython’da özel bir C fonksiyonu üzerinden yürütülür.
+
+Python seviyesinde yazılan `super().__new__(cls, value)` ifadesi,  
+C düzeyinde `tp_new` slot’u aracılığıyla `long_new` fonksiyonuna yönlendirilir.
+
+`long_new`, `longobject.c` içinde tanımlıdır ve `PyLongObject` türündeki nesneleri üretir.  
+Bellek tahsisi burada `PyLong_New()` veya `_PyLong_New()` gibi optimize edilmiş fonksiyonlarla yapılır.
+
+> 🎯 Yani `int.__new__`, `object.__new__` gibi genel bir yol izlemez.  
+> Bunun yerine doğrudan tamsayılar için ayrılmış, hızlı ve özel bellek yapıları kullanılır.
+
+Bu sayede:
+- Python’daki `int` sınıfı büyük sayıları destekleyebilir.  
+- Küçük sayılar için `medium_add` gibi hızlı yol optimizasyonları devreye girer.
+
+---
+
 #### ⚙️ İmza (int’e Özgü)
 
 ```python
@@ -275,18 +295,6 @@ Bu özellik, farklı tabanlarda veri kodlama, kısa ID üretimi, hash çözümle
 | `0o`    | 8        | `"0o77"` → 63 |
 | `0x`    | 16       | `"0xFF"` → 255 |
 | (yok)   | 10       | `"42"` → 42 |
-
-
-
-### ⚠️ Dikkat Edilmesi Gerekenler
-
-| ⚠️ Durum | 💬 Açıklama |
-|---------|-------------|
-| `base` yalnızca metin tabanlı türlerde geçerlidir | `str`, `bytes`, `bytearray` dışında `base` kullanımı `TypeError` üretir |
-| Geçerli taban aralığı `2 ≤ base ≤ 36` | Daha düşük veya yüksek değerler `ValueError` üretir |
-| `base=0` ön ek analizine dayanır | Ön ek yoksa sayı ondalık varsayılır |
-| Harfler büyük/küçük fark etmez | `"A"` ≡ `"a"`; karakter çözümlemesi case-insensitive'dir |
-| `base=36` maksimum karakter desteği sağlar | `0–9` + `a–z` → toplam 36 karakterlik çözümleme alanı |
 
 ---
 
