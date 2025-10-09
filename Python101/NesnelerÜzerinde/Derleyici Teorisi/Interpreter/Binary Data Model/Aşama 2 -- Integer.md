@@ -319,7 +319,7 @@ print(int("42", 0))         # → 42
 
 # Hatalı kullanım: base aralık dışında olursa ValueError
 # print(int("101", 1))      # ❌ ValueError: base must be >= 2 and <= 36
-
+```
 ---
 
 #### 📊 `int()` Yapıcısında `base` Parametresi Davranış Tablosu
