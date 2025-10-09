@@ -149,6 +149,8 @@ Bu yapı sayesinde Python, built-in türler için maksimum hızda çalışır.
 
 > 💡 Bu mekanizma, CPython’ın performans optimizasyonlarının temel taşlarından biridir.
 
+> 🧠 `PyCallObject` ismi sanki çağrılabilir bir nesneyi tanımlıyormuş gibi görünse de, CPython’da çağrı bir işlem olduğu için `PyObject_Call` gibi eylem odaklı isimlendirme tercih edilir; bu, yorumlayıcının bir objeyi çağırma fonksiyonunu doğru şekilde yansıtır.
+
 ---
 
 ### 🧩 `int` Sınıfının Attribute ve Dunder Metotları
