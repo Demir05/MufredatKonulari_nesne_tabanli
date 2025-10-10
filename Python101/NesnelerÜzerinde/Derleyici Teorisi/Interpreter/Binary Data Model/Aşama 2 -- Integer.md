@@ -253,15 +253,20 @@ void _PyLong_Init(void)
 ```
 #### 📌 🔑 ÖNEMLİ NOTLAR — CPython `int` Oluşturma Süreci
 
-| 🧩 Konu             | 💬 Detay                                                                 |
-|---------------------|--------------------------------------------------------------------------|
-| `tp_call`           | Sınıf çağrıları için genellikle `type_call`'a atanır                    |
-| `tp_new`            | Sınıfın örneğini yaratır; `int` için `long_new`                         |
-| `PyLong_FromLong`   | `int(x)` gibi işler; önce cache’e bakar                                 |
-| `type_call`         | `__new__` dönüş tipi doğru değilse `TypeError` fırlatır                 |
-| `small_ints[]`      | `-5` ile `256` arası sayılar burada tutulur, doğrudan RAM'den çekilir   |
+## 🧩 `int()` Fonksiyonunun C Düzeyindeki Çağrı Zinciri
 
----
+| 🔢 Aşama | 🧩 Bileşen / Fonksiyon            | 🎯 Açıklama                                                                 |
+|---------|-----------------------------------|------------------------------------------------------------------------------|
+| 1️⃣      | `CALL` opcode                    | Python bytecode düzeyinde `int(...)` çağrısını tetikler. Doğrudan C düzeyine geçer ve `PyObject_Call` fonksiyonunu çağırır. |
+| 2️⃣      | `PyObject_Call`                  | Python’daki tüm çağrılar bu genel mekanizma üzerinden yürütülür. `tp_call` slotu kontrol edilir. |
+| 3️⃣      | `tp_call` → `type_call`          | `int` gibi yerleşik türlerde `tp_call` içinde `type_call` bulunur. Bu fonksiyon çağrılır ve sonuç döndürülür. |
+| 4️⃣      | `type_call(type, args)`          | Asıl amacı `PyLongObject` oluşturmaktır. `type` ve `args` argümanları `tp_new` slotuna aktarılır. Ayrıca `tp_init` kontrolü de buradadır. Immutable türlerde `tp_init` etkisizdir. |
+| 5️⃣      | `tp_new` → `long_new`            | `int` sınıfı için `long_new` fonksiyonu çağrılır. `args` içeriği parse edilir. `str`, `bytes`, `bool`, `bytearray` gibi türler desteklenir. Hatalı veriler için `ValueError` fırlatılır. |
+| 6️⃣      | `long_new` → `PyNumber_Long`     | `long_new` içinde `PyNumber_Long` çağrılır. Bu da `PyLong_FromLong(...)` zincirine gider. |
+| 7️⃣      | `PyLong_FromLong(n)`             | Sayı -1 ile 255 arasında ise önceden RAM’de tahsis edilmiş nesne döndürülür. Yeni nesne oluşturulmaz. |
+| 8️⃣      | `small_ints[]` dizisi            | Bu dizideki nesneler `for` döngüsü ile başta oluşturulur. Cache sayesinde performans artar. |
+
+
 
 ### 🧩 Sonuç
 
